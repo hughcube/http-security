@@ -32,9 +32,9 @@ class Middleware
      * @param string $key
      * @return mixed
      */
-    protected function getGuardConfig($key)
+    protected function getGuardConfig($key, $default = null)
     {
-        return $this->config->get("httpSecurity.{$key}");
+        return $this->config->get("httpSecurity.{$key}", $default);
     }
 
     /**
@@ -45,6 +45,7 @@ class Middleware
      *
      * @return mixed
      * @throws \Symfony\Component\HttpKernel\Exception\HttpException
+     * @throws \ReflectionException
      *
      */
     public function handle(Request $request, Closure $next)
@@ -54,13 +55,13 @@ class Middleware
         /**
          * Call all guards
          */
-        $reflection = new ReflectionClass($class);
-        foreach($reflection->getMethods() as $method){
-            if (!Str::endsWith($method->getName(), 'Guard')){
+        $reflection = new ReflectionClass($this);
+        foreach ($reflection->getMethods() as $method) {
+            if (!$method->isPublic() || !Str::endsWith($method->getName(), 'Guard')) {
                 continue;
             }
 
-            $method->invoke($this, $request, $response);
+            $method->invokeArgs($this, [$request, $response]);
         }
 
         return $response;
@@ -70,94 +71,121 @@ class Middleware
      * @param Request $request
      * @param Response $response
      */
-    protected function contentMimeGuard($request, $response)
+    public function contentMimeGuard($request, $response)
     {
-        if (false == $this->getGuardConfig('contentMime.enable')){
+        if (false == $this->getGuardConfig('contentMime.enable')) {
             return;
         }
 
-        if ($response instanceof Response){
-            $response->headers->set('X-Content-Type-Options', "nosniff", false);
+        if (!$response instanceof Response) {
+            return;
         }
+
+        $response->headers->set('X-Content-Type-Options', "nosniff", false);
     }
 
     /**
      * @param Request $request
      * @param Response $response
      */
-    protected function poweredByHeaderGuard($request, $response)
+    public function poweredByHeaderGuard($request, $response)
     {
-        if (false == $this->getGuardConfig('poweredByHeader.enable')){
+        if (false == $this->getGuardConfig('poweredByHeader.enable')) {
+            return;
+        }
+
+        if (!$response instanceof Response) {
             return;
         }
 
         /**
          * Remove X-Powered-By header
          */
-        if (function_exists('header_remove')){
-            header_remove('X-Powered-By'); // PHP 5.3+
-        }else{
+        if (function_exists('header_remove')) {
+            @header_remove('X-Powered-By'); // PHP 5.3+
+        } else {
             @ini_set('expose_php', 'off');
         }
 
         $options = $this->getGuardConfig('poweredByHeader.options');
-        if ($response instanceof Response && null !== $options){
-            $response->headers->set('X-Powered-By', $options, false);
+        if (null === $options) {
+            return;
         }
+
+        $response->headers->set('X-Powered-By', $options, false);
     }
 
     /**
      * @param Request $request
      * @param Response $response
      */
-    protected function uaCompatibleGuard($request, $response)
+    public function uaCompatibleGuard($request, $response)
     {
-        if (false == $this->getGuardConfig('uaCompatible.enable')){
+        if (false == $this->getGuardConfig('uaCompatible.enable')) {
+            return;
+        }
+
+        if (!$response instanceof Response) {
             return;
         }
 
         $policy = $this->getGuardConfig('uaCompatible.policy');
-        if ($response instanceof Response && null != $policy){
-            $response->headers->set('X-Ua-Compatible', $policy, false);
+        if (null === $policy) {
+            return;
         }
+
+        $response->headers->set('X-Ua-Compatible', $policy, false);
     }
 
     /**
      * @param Request $request
      * @param Response $response
      */
-    protected function hstsGuard($request, $response)
+    public function hstsGuard($request, $response)
     {
         $enable = $this->getGuardConfig('hsts.enable');
-        if (false == (null === $enable ? $request->isSecure() : $enable)){
+        if (false == (null === $enable ? $request->isSecure() : $enable)) {
+            return;
+        }
+
+        if (!$response instanceof Response) {
             return;
         }
 
         $maxAge = $this->getGuardConfig('hsts.maxAge', -1);
-        $includeSubDomains = $this->getGuardConfig('hsts.includeSubDomains', false);
-        $preload = $this->getGuardConfig('hsts.preload', false);
-
-        if (0 >= $maxAge){
+        if (0 >= $maxAge) {
             return;
         }
 
-        $value = ("max-age={$maxAge}") . ($includeSubDomains ? '; includeSubDomains' : '') . ($preload ? '; preload' : '');
-        $response->headers->set('Strict-Transport-Security', $value, false);
+        $includeSubDomains = $this->getGuardConfig('hsts.includeSubDomains', false);
+        $preload = $this->getGuardConfig('hsts.preload', false);
+
+        $header = "";
+        $header .= ("max-age={$maxAge}");
+        $header .= ($includeSubDomains ? '; includeSubDomains' : '');
+        $header .= ($preload ? '; preload' : '');
+        $response->headers->set('Strict-Transport-Security', $header, false);
     }
 
     /**
      * @param Request $request
      * @param Response $response
      */
-    protected function xssProtectionGuard($request, $response)
+    public function xssProtectionGuard($request, $response)
     {
-        if (false == $this->getGuardConfig('xssProtection.enable')){
+        if (false == $this->getGuardConfig('xssProtection.enable')) {
+            return;
+        }
+
+        if (!$response instanceof Response) {
             return;
         }
 
         $policy = $this->getGuardConfig('xssProtection.policy');
-        if ($response instanceof Response && null !== $policy){
-            $response->headers->set('X-XSS-Protection', strval($policy), false);
+        if (null === $policy) {
+            return;
         }
+
+        $response->headers->set('X-XSS-Protection', strval($policy), false);
     }
 }
