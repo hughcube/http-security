@@ -17,7 +17,7 @@ return [
      * @see https://www.php.net/manual/zh/function.header-remove.php
      */
     'poweredByHeader' => [
-        'enable' => true,
+        'enable'  => true,
         'options' => null,
     ],
 
@@ -27,7 +27,7 @@ return [
      */
     'uaCompatible' => [
         'enable' => true,
-        'policy' => "IE=Edge,chrome=1"
+        'policy' => 'IE=Edge,chrome=1',
     ],
 
     /**

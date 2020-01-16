@@ -30,6 +30,7 @@ class Middleware
 
     /**
      * @param string $key
+     *
      * @return mixed
      */
     protected function getGuardConfig($key, $default = null)
@@ -41,19 +42,19 @@ class Middleware
      * Handle an incoming request.
      *
      * @param \Illuminate\Http\Request $request
-     * @param \Closure $next
+     * @param \Closure                 $next
      *
-     * @return mixed
      * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      * @throws \ReflectionException
      *
+     * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
         $response = $next($request);
 
         /**
-         * Call all guards
+         * Call all guards.
          */
         $reflection = new ReflectionClass($this);
         foreach ($reflection->getMethods() as $method) {
@@ -68,7 +69,7 @@ class Middleware
     }
 
     /**
-     * @param Request $request
+     * @param Request  $request
      * @param Response $response
      */
     public function contentMimeGuard($request, $response)
@@ -81,11 +82,11 @@ class Middleware
             return;
         }
 
-        $response->headers->set('X-Content-Type-Options', "nosniff", false);
+        $response->headers->set('X-Content-Type-Options', 'nosniff', false);
     }
 
     /**
-     * @param Request $request
+     * @param Request  $request
      * @param Response $response
      */
     public function poweredByHeaderGuard($request, $response)
@@ -99,7 +100,7 @@ class Middleware
         }
 
         /**
-         * Remove X-Powered-By header
+         * Remove X-Powered-By header.
          */
         if (function_exists('header_remove')) {
             @header_remove('X-Powered-By'); // PHP 5.3+
@@ -116,7 +117,7 @@ class Middleware
     }
 
     /**
-     * @param Request $request
+     * @param Request  $request
      * @param Response $response
      */
     public function uaCompatibleGuard($request, $response)
@@ -138,7 +139,7 @@ class Middleware
     }
 
     /**
-     * @param Request $request
+     * @param Request  $request
      * @param Response $response
      */
     public function hstsGuard($request, $response)
@@ -160,7 +161,7 @@ class Middleware
         $includeSubDomains = $this->getGuardConfig('hsts.includeSubDomains', false);
         $preload = $this->getGuardConfig('hsts.preload', false);
 
-        $header = "";
+        $header = '';
         $header .= ("max-age={$maxAge}");
         $header .= ($includeSubDomains ? '; includeSubDomains' : '');
         $header .= ($preload ? '; preload' : '');
@@ -168,7 +169,7 @@ class Middleware
     }
 
     /**
-     * @param Request $request
+     * @param Request  $request
      * @param Response $response
      */
     public function xssProtectionGuard($request, $response)

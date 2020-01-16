@@ -54,38 +54,39 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
         $router->get('ping', [
             'uses' => function () {
                 return 'PONG';
-            }
+            },
         ]);
 
         $router->post('ping', [
             'uses' => function () {
                 return 'PONG';
-            }
+            },
         ]);
 
         $router->put('ping', [
             'uses' => function () {
                 return 'PONG';
-            }
+            },
         ]);
 
         $router->options('ping', [
             'uses' => function () {
                 return 'PONG';
-            }
+            },
         ]);
 
         $router->get('error', [
             'uses' => function () {
                 abort(500);
-            }
+            },
         ]);
 
         $router->get('validation', [
             'uses' => function (Request $request) {
                 $this->validate($request, ['name' => 'required']);
+
                 return 'ok';
-            }
+            },
         ]);
     }
 
@@ -107,15 +108,15 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
     public function testContentMimeGuard()
     {
         foreach ($this->createCrawlers() as $crawler) {
-            $this->assertEquals("nosniff", $crawler->headers->get('X-Content-Type-Options'));
+            $this->assertEquals('nosniff', $crawler->headers->get('X-Content-Type-Options'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.contentMime.enable", true);
+        $this->getAppConfig()->set('httpSecurity.contentMime.enable', true);
         foreach ($this->createCrawlers() as $crawler) {
-            $this->assertEquals("nosniff", $crawler->headers->get('X-Content-Type-Options'));
+            $this->assertEquals('nosniff', $crawler->headers->get('X-Content-Type-Options'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.contentMime.enable", false);
+        $this->getAppConfig()->set('httpSecurity.contentMime.enable', false);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('X-Content-Type-Options'));
         }
@@ -127,42 +128,42 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
             $this->assertEquals(null, $crawler->headers->get('X-Powered-By'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.poweredByHeader.enable", false);
+        $this->getAppConfig()->set('httpSecurity.poweredByHeader.enable', false);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('X-Powered-By'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.poweredByHeader.enable", true);
+        $this->getAppConfig()->set('httpSecurity.poweredByHeader.enable', true);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('X-Powered-By'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.poweredByHeader.enable", true);
-        $this->getAppConfig()->set("httpSecurity.poweredByHeader.options", "PHP:" . PHP_VERSION);
+        $this->getAppConfig()->set('httpSecurity.poweredByHeader.enable', true);
+        $this->getAppConfig()->set('httpSecurity.poweredByHeader.options', 'PHP:'.PHP_VERSION);
         foreach ($this->createCrawlers() as $crawler) {
-            $this->assertEquals("PHP:" . PHP_VERSION, $crawler->headers->get('X-Powered-By'));
+            $this->assertEquals('PHP:'.PHP_VERSION, $crawler->headers->get('X-Powered-By'));
         }
     }
 
     public function testUaCompatibleGuard()
     {
         foreach ($this->createCrawlers() as $crawler) {
-            $this->assertEquals("IE=Edge,chrome=1", $crawler->headers->get('X-Ua-Compatible'));
+            $this->assertEquals('IE=Edge,chrome=1', $crawler->headers->get('X-Ua-Compatible'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.uaCompatible.enable", false);
+        $this->getAppConfig()->set('httpSecurity.uaCompatible.enable', false);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('X-Ua-Compatible'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.uaCompatible.enable", true);
-        $this->getAppConfig()->set("httpSecurity.uaCompatible.policy", null);
+        $this->getAppConfig()->set('httpSecurity.uaCompatible.enable', true);
+        $this->getAppConfig()->set('httpSecurity.uaCompatible.policy', null);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('X-Ua-Compatible'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.uaCompatible.enable", true);
-        $this->getAppConfig()->set("httpSecurity.uaCompatible.policy", PHP_VERSION);
+        $this->getAppConfig()->set('httpSecurity.uaCompatible.enable', true);
+        $this->getAppConfig()->set('httpSecurity.uaCompatible.policy', PHP_VERSION);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(PHP_VERSION, $crawler->headers->get('X-Ua-Compatible'));
         }
@@ -174,55 +175,55 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
             $this->assertEquals(null, $crawler->headers->get('Strict-Transport-Security'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.hsts.enable", false);
+        $this->getAppConfig()->set('httpSecurity.hsts.enable', false);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('Strict-Transport-Security'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.hsts.enable", true);
+        $this->getAppConfig()->set('httpSecurity.hsts.enable', true);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(
-                "max-age=31536000; includeSubDomains; preload",
+                'max-age=31536000; includeSubDomains; preload',
                 $crawler->headers->get('Strict-Transport-Security')
             );
         }
 
-        $this->getAppConfig()->set("httpSecurity.hsts.maxAge", -1);
+        $this->getAppConfig()->set('httpSecurity.hsts.maxAge', -1);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('Strict-Transport-Security'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.hsts.enable", true);
-        $this->getAppConfig()->set("httpSecurity.hsts.maxAge", 60);
+        $this->getAppConfig()->set('httpSecurity.hsts.enable', true);
+        $this->getAppConfig()->set('httpSecurity.hsts.maxAge', 60);
 
-        $this->getAppConfig()->set("httpSecurity.hsts.includeSubDomains", true);
+        $this->getAppConfig()->set('httpSecurity.hsts.includeSubDomains', true);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(
-                "max-age=60; includeSubDomains; preload",
+                'max-age=60; includeSubDomains; preload',
                 $crawler->headers->get('Strict-Transport-Security')
             );
         }
 
-        $this->getAppConfig()->set("httpSecurity.hsts.includeSubDomains", false);
+        $this->getAppConfig()->set('httpSecurity.hsts.includeSubDomains', false);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(
-                "max-age=60; preload",
+                'max-age=60; preload',
                 $crawler->headers->get('Strict-Transport-Security')
             );
         }
 
-        $this->getAppConfig()->set("httpSecurity.hsts.preload", false);
+        $this->getAppConfig()->set('httpSecurity.hsts.preload', false);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(
-                "max-age=60",
+                'max-age=60',
                 $crawler->headers->get('Strict-Transport-Security')
             );
         }
 
-        $this->getAppConfig()->set("httpSecurity.hsts.preload", true);
+        $this->getAppConfig()->set('httpSecurity.hsts.preload', true);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(
-                "max-age=60; preload",
+                'max-age=60; preload',
                 $crawler->headers->get('Strict-Transport-Security')
             );
         }
@@ -231,22 +232,22 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
     public function testXssProtectionGuard()
     {
         foreach ($this->createCrawlers() as $crawler) {
-            $this->assertEquals("1", $crawler->headers->get('X-XSS-Protection'));
+            $this->assertEquals('1', $crawler->headers->get('X-XSS-Protection'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.xssProtection.enable", false);
+        $this->getAppConfig()->set('httpSecurity.xssProtection.enable', false);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('X-XSS-Protection'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.xssProtection.enable", true);
-        $this->getAppConfig()->set("httpSecurity.xssProtection.policy", null);
+        $this->getAppConfig()->set('httpSecurity.xssProtection.enable', true);
+        $this->getAppConfig()->set('httpSecurity.xssProtection.policy', null);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(null, $crawler->headers->get('X-XSS-Protection'));
         }
 
-        $this->getAppConfig()->set("httpSecurity.xssProtection.enable", true);
-        $this->getAppConfig()->set("httpSecurity.xssProtection.policy", PHP_VERSION);
+        $this->getAppConfig()->set('httpSecurity.xssProtection.enable', true);
+        $this->getAppConfig()->set('httpSecurity.xssProtection.policy', PHP_VERSION);
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(PHP_VERSION, $crawler->headers->get('X-XSS-Protection'));
         }

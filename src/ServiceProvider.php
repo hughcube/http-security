@@ -32,7 +32,7 @@ class ServiceProvider extends BaseServiceProvider
      */
     public function register()
     {
-        $source = realpath($raw = __DIR__ . '/../config/httpSecurity.php') ?: $raw;
+        $source = realpath($raw = __DIR__.'/../config/httpSecurity.php') ?: $raw;
 
         if ($this->app instanceof LaravelApplication && $this->app->runningInConsole()) {
             $this->publishes([$source => config_path('httpSecurity.php')]);
