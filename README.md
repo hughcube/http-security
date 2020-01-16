@@ -8,8 +8,8 @@
     <a href="https://github.com/hughcube/http-security/actions?query=workflow%3ALint">
         <img src="https://github.com/hughcube/http-security/workflows/Lint/badge.svg" alt="Lint Actions status">
     </a>
-    <a href="https://styleci.io/repos/217659566">
-        <img src="https://github.styleci.io/repos/217659566/shield?branch=master" alt="StyleCI">
+    <a href="https://styleci.io/repos/215931266">
+        <img src="https://github.styleci.io/repos/215931266/shield?branch=master" alt="StyleCI">
     </a>
     <a href="https://scrutinizer-ci.com/g/hughcube/http-security/?branch=master">
         <img src="https://scrutinizer-ci.com/g/hughcube/http-security/badges/coverage.png?b=master" alt="Code Coverage">
