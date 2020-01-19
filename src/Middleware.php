@@ -3,10 +3,14 @@
 namespace HughCube\HttpSecurity;
 
 use Closure;
+use HughCube\HttpSecurity\Exceptions\ClientIpHasChangeHttpException;
+use HughCube\HttpSecurity\Exceptions\IpAccessDeniedHttpException;
+use HughCube\HttpSecurity\Exceptions\UserAgentHasChangeHttpException;
 use Illuminate\Contracts\Config\Repository;
-use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use ReflectionClass;
+use Symfony\Component\HttpFoundation\IpUtils;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class Middleware
@@ -29,25 +33,15 @@ class Middleware
     }
 
     /**
-     * @param string $key
-     *
-     * @return mixed
-     */
-    protected function getGuardConfig($key, $default = null)
-    {
-        return $this->config->get("httpSecurity.{$key}", $default);
-    }
-
-    /**
      * Handle an incoming request.
      *
      * @param \Illuminate\Http\Request $request
-     * @param \Closure                 $next
-     *
-     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
-     * @throws \ReflectionException
+     * @param \Closure $next
      *
      * @return mixed
+     * @throws \ReflectionException
+     *
+     * @throws \Symfony\Component\HttpKernel\Exception\HttpException
      */
     public function handle(Request $request, Closure $next)
     {
@@ -69,7 +63,36 @@ class Middleware
     }
 
     /**
-     * @param Request  $request
+     * @param string $key
+     *
+     * @return mixed
+     */
+    protected function getGuardConfig($key, $default = null)
+    {
+        return $this->config->get("httpSecurity.{$key}", $default);
+    }
+
+    /**
+     * Determine if a session driver has been configured.
+     *
+     * @param Request $request
+     * @return bool
+     */
+    protected function sessionIsStarted(Request $request)
+    {
+        /** @var \Illuminate\Contracts\Session\Session $session */
+        $session = $request->getSession();
+
+        return $session->isStarted();
+    }
+
+    protected function buildCacheKey($key)
+    {
+        return "HttpSecurity:" . md5(serialize($key));
+    }
+
+    /**
+     * @param Request $request
      * @param Response $response
      */
     public function contentMimeGuard($request, $response)
@@ -86,7 +109,7 @@ class Middleware
     }
 
     /**
-     * @param Request  $request
+     * @param Request $request
      * @param Response $response
      */
     public function poweredByHeaderGuard($request, $response)
@@ -117,7 +140,7 @@ class Middleware
     }
 
     /**
-     * @param Request  $request
+     * @param Request $request
      * @param Response $response
      */
     public function uaCompatibleGuard($request, $response)
@@ -139,7 +162,7 @@ class Middleware
     }
 
     /**
-     * @param Request  $request
+     * @param Request $request
      * @param Response $response
      */
     public function hstsGuard($request, $response)
@@ -169,7 +192,7 @@ class Middleware
     }
 
     /**
-     * @param Request  $request
+     * @param Request $request
      * @param Response $response
      */
     public function xssProtectionGuard($request, $response)
@@ -188,5 +211,165 @@ class Middleware
         }
 
         $response->headers->set('X-XSS-Protection', strval($policy), false);
+    }
+
+    /**
+     * @param Request $request
+     * @param Response $response
+     */
+    public function refererHotlinkingGuard($request, $response)
+    {
+        if (false == $this->getGuardConfig('refererHotlinking.enable')) {
+            return;
+        }
+
+        $allow = false;
+        $referer = $request->headers->get('Referer');
+
+        // 如果 Referer 为空直接通过
+        $allowEmpty = $this->getGuardConfig('refererHotlinking.allowEmpty', true);
+        if (!$allow && $allowEmpty && null == $referer) {
+            $allow = true;
+        }
+
+        // 去匹配允许的条件, 如果 allowedPatterns 为空直接通过
+        $allowPatterns = $this->getGuardConfig('refererHotlinking.allowPatterns', []);
+        $allow = $allow || empty($allowPatterns);
+        foreach ($allowPatterns as $pathPattern => $refererPatterns) {
+            if ($allow) {
+                break;
+            }
+
+            if (!Str::is($pathPattern, $request->getPathInfo())) {
+                continue;
+            }
+
+            $allow = Str::is($refererPatterns, $referer);
+            break;
+        }
+
+        // 不允许的
+        $forbidPatterns = $this->getGuardConfig('refererHotlinking.forbidPatterns', []);
+        foreach ($forbidPatterns as $pathPattern => $refererPatterns) {
+            if (!$allow) {
+                break;
+            }
+
+            if (!Str::is($pathPattern, $request->getPathInfo())) {
+                continue;
+            }
+
+            $allow = !Str::is($refererPatterns, $referer);
+            break;
+        }
+
+        if (!$allow) {
+            # throw new RefererHotlinkingHttpException("HTTP referer not allow");
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @param Response $response
+     */
+    public function clientIpChangeGuard($request, $response)
+    {
+        if (false == $this->getGuardConfig('clientIpChange.enable')) {
+            return;
+        }
+
+        if (!$this->sessionIsStarted($request)) {
+            return;
+        }
+
+        $clientIpHash = crc32(serialize($request->getClientIp()));
+
+        $sessionKey = $this->buildCacheKey(__METHOD__);
+        if (!$request->getSession()->has($sessionKey)) {
+            $request->getSession()->set($sessionKey, $clientIpHash);
+        }
+
+        if ($clientIpHash !== $request->getSession()->get($sessionKey)) {
+            throw new ClientIpHasChangeHttpException('Ip has change.');
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @param Response $response
+     */
+    protected function userAgentChangeGuard($request, $response)
+    {
+        if (false == $this->getGuardConfig('userAgentChange.enable')) {
+            return;
+        }
+
+        if (!$this->sessionIsStarted($request)) {
+            return;
+        }
+
+        $userAgentHash = crc32(serialize($request->headers->get('User-Agent')));
+
+        $sessionKey = $this->buildCacheKey(__METHOD__);
+        if (!$request->getSession()->has($sessionKey)) {
+            $request->getSession()->set($sessionKey, $userAgentHash);
+        }
+
+        if ($userAgentHash !== $request->getSession()->get($sessionKey)) {
+            throw new UserAgentHasChangeHttpException('User-Agent has change.');
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @param Response $response
+     */
+    protected function ipAccessGuard($request, $response)
+    {
+        if (false == $this->getGuardConfig('ipAccess.enable')) {
+            return;
+        }
+
+        $clientIp = $request->getClientIp();
+        if (null == $clientIp) {
+            return;
+        }
+
+        $allow = false;
+
+        // 去匹配允许条件, 如果 allowedIps 为空直接通过
+        $allowedIps = $this->getGuardConfig('ipAccess.allowedIps', []);
+        $allow = ($allow || empty($allowedIps));
+        foreach ($allowedIps as $pathPattern => $ipPatterns) {
+            if ($allow) {
+                break;
+            }
+
+            if (!Str::is($pathPattern, $request->getPathInfo())) {
+                continue;
+            }
+
+            $allow = IpUtils::checkIp($clientIp, $ipPatterns);
+            break;
+        }
+
+        // 不允许的
+        $forbidPatterns = $this->getGuardConfig('ipAccess.forbidIps', []);
+        foreach ($forbidPatterns as $pathPattern => $ipPatterns) {
+            if (!$allow) {
+                break;
+            }
+
+            if (!Str::is($pathPattern, $request->getPathInfo())) {
+                continue;
+            }
+
+            $allow = !IpUtils::checkIp($clientIp, $ipPatterns);
+            break;
+        }
+
+        if (!$allow) {
+            throw new IpAccessDeniedHttpException('Not allowed ip.');
+        }
     }
 }

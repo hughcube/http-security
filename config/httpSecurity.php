@@ -17,7 +17,7 @@ return [
      * @see https://www.php.net/manual/zh/function.header-remove.php
      */
     'poweredByHeader' => [
-        'enable'  => true,
+        'enable' => true,
         'options' => null,
     ],
 
@@ -71,11 +71,49 @@ return [
         /**
          * 0: Disables XSS filtering.
          * 1: Enables XSS filtering (usually default in browsers).
-         *    If a cross-site scripting attack is detected, the browser will sanitize the page (remove the unsafe parts).
-         * 1; mode=block: Enables XSS filtering. Rather than sanitizing the page, the browser will prevent rendering of the page if an attack is detected.
-         * 1; report=<reporting-URI> (Chromium only): Enables XSS filtering. If a cross-site scripting attack is detected, the browser will sanitize the page and report the violation.
+         *    If a cross-site scripting attack is detected, the browser
+         *    will sanitize the page (remove the unsafe parts).
+         * 1; mode=block: Enables XSS filtering. Rather than sanitizing the page,
+         *    the browser will prevent rendering of the page if an attack is detected.
+         * 1; report=<reporting-URI> (Chromium only): Enables XSS filtering.
+         *    If a cross-site scripting attack is detected,
+         *    the browser will sanitize the page and report the violation.
          *    This uses the functionality of the CSP report-uri directive to send a report.
          */
         'policy' => 1,
+    ],
+
+    /**
+     * The Referrer-Policy HTTP header controls how much referrer information (sent via the Referer header)
+     * should be included with requests.
+     *
+     * @see https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Referrer-Policy
+     */
+    'refererHotlinking' => [
+        'enable' => true,
+        'allowEmpty' => true,
+        'allowedPatterns' => [
+            '*' => ['*'],
+        ],
+
+        'forbidPatterns' => [],
+    ],
+
+    'clientIpChange' => [
+        'enable' => false,
+    ],
+
+    'userAgentChange' => [
+        'enable' => true,
+    ],
+
+    'ipAccess' => [
+        'enable' => true,
+
+        'allowedIps' => [
+            '*' => '*',
+        ],
+
+        'forbidIps' => [],
     ],
 ];

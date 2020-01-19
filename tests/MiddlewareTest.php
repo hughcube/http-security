@@ -10,9 +10,15 @@ use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 
-abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
+class MiddlewareTest extends \Orchestra\Testbench\TestCase
 {
     use ValidatesRequests;
+
+    protected function resolveApplicationConfiguration($app)
+    {
+        $_ENV['APP_DEBUG'] = true;
+        parent::resolveApplicationConfiguration($app);
+    }
 
     protected function getPackageProviders($app)
     {
@@ -52,31 +58,31 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
     protected function addRoutes($router)
     {
         $router->get('ping', [
-            'uses' => function () {
+            'uses' => function (Request $request) {
                 return 'PONG';
             },
         ]);
 
         $router->post('ping', [
-            'uses' => function () {
+            'uses' => function (Request $request) {
                 return 'PONG';
             },
         ]);
 
         $router->put('ping', [
-            'uses' => function () {
+            'uses' => function (Request $request) {
                 return 'PONG';
             },
         ]);
 
         $router->options('ping', [
-            'uses' => function () {
+            'uses' => function (Request $request) {
                 return 'PONG';
             },
         ]);
 
         $router->get('error', [
-            'uses' => function () {
+            'uses' => function (Request $request) {
                 abort(500);
             },
         ]);
@@ -100,8 +106,8 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
             $this->call('POST', 'ping'),
             $this->call('PUT', 'ping'),
             $this->call('OPTIONS', 'ping'),
-            $this->call('GET', 'error'),
-            $this->call('GET', 'validation'),
+            #$this->call('GET', 'error'),
+            #$this->call('GET', 'validation'),
         ];
     }
 
@@ -139,9 +145,9 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
         }
 
         $this->getAppConfig()->set('httpSecurity.poweredByHeader.enable', true);
-        $this->getAppConfig()->set('httpSecurity.poweredByHeader.options', 'PHP:'.PHP_VERSION);
+        $this->getAppConfig()->set('httpSecurity.poweredByHeader.options', 'PHP:' . PHP_VERSION);
         foreach ($this->createCrawlers() as $crawler) {
-            $this->assertEquals('PHP:'.PHP_VERSION, $crawler->headers->get('X-Powered-By'));
+            $this->assertEquals('PHP:' . PHP_VERSION, $crawler->headers->get('X-Powered-By'));
         }
     }
 
@@ -251,5 +257,25 @@ abstract class MiddlewareTest extends \Orchestra\Testbench\TestCase
         foreach ($this->createCrawlers() as $crawler) {
             $this->assertEquals(PHP_VERSION, $crawler->headers->get('X-XSS-Protection'));
         }
+    }
+
+    public function testRefererHotlinkingGuard()
+    {
+        $this->markTestSkipped();
+    }
+
+    public function testClientIpChangeGuard()
+    {
+        $this->markTestSkipped();
+    }
+
+    public function testUserAgentChangeGuard()
+    {
+        $this->markTestSkipped();
+    }
+
+    public function testIpAccessGuard()
+    {
+        $this->markTestSkipped();
     }
 }
